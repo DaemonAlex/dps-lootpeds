@@ -19,7 +19,7 @@ lua54 'yes'
 name 'dps-lootpeds'
 author 'DPS Development (Original: MaDHouSe)'
 description 'State Bag synced ped looting with model-specific loot tables'
-version '3.0.0'
+version '3.1.0'
 
 ox_lib 'locale'
 

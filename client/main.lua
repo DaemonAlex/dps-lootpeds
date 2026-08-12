@@ -24,20 +24,6 @@ local function isPedLooted(entity)
     return false
 end
 
----Get ped model name from entity
----@param entity number
----@return string|nil
-local function getPedModelName(entity)
-    if not DoesEntityExist(entity) then return nil end
-
-    local model = GetEntityModel(entity)
-    -- Convert hash to string model name (approximate - for category matching)
-    -- This is a simplified approach; actual model names come from the hash
-
-    -- For better accuracy, we'll let the server determine category
-    return tostring(model)
-end
-
 ---Check if ped is blacklisted
 ---@param entity number
 ---@return boolean
@@ -196,46 +182,58 @@ end
 -- VISUAL INDICATOR FOR LOOTED BODIES
 -- ═══════════════════════════════════════════════════════
 
--- Optional: Show visual indicator on looted bodies
+-- Cached coords of nearby looted bodies. Refreshed on a throttle (world ped
+-- enumeration is expensive); drawn per-frame (DrawText is cheap). Keeping these
+-- separate is what stops the indicator from scanning every ped every frame.
+local nearbyLootedBodies = {}
+
 local function drawLootedIndicator()
     if not Config.UseStateBags then return end
 
+    -- Scanner: rebuild the nearby-looted list a few times a second, not per-frame.
     CreateThread(function()
         while true do
-            local sleep = 1000
-            local playerPed = PlayerPedId()
-            local playerCoords = GetEntityCoords(playerPed)
-
-            -- Find nearby peds
-            local closestPed, closestDist = nil, 10.0
+            local found = {}
+            local playerCoords = GetEntityCoords(PlayerPedId())
 
             for ped in EnumeratePeds() do
                 if DoesEntityExist(ped) and not IsPedAPlayer(ped) and IsEntityDead(ped) then
                     local pedCoords = GetEntityCoords(ped)
-                    local dist = #(playerCoords - pedCoords)
-
-                    if dist < closestDist then
-                        local state = Entity(ped).state
-                        if state.isLooted then
-                            sleep = 0
-                            -- Draw "LOOTED" text above body
-                            local onScreen, x, y = World3dToScreen2d(pedCoords.x, pedCoords.y, pedCoords.z + 0.5)
-                            if onScreen then
-                                SetTextScale(0.3, 0.3)
-                                SetTextFont(4)
-                                SetTextColour(200, 200, 200, 180)
-                                SetTextOutline()
-                                SetTextCentre(true)
-                                SetTextEntry('STRING')
-                                AddTextComponentString('~c~[SEARCHED]')
-                                DrawText(x, y)
-                            end
-                        end
+                    if #(playerCoords - pedCoords) < 12.0 and Entity(ped).state.isLooted then
+                        found[#found + 1] = pedCoords
                     end
                 end
             end
 
-            Wait(sleep)
+            nearbyLootedBodies = found
+            Wait(750)
+        end
+    end)
+
+    -- Renderer: draw the cached bodies each frame, and only spin per-frame while
+    -- there is actually something to draw.
+    CreateThread(function()
+        while true do
+            local count = #nearbyLootedBodies
+            if count > 0 then
+                for i = 1, count do
+                    local c = nearbyLootedBodies[i]
+                    local onScreen, x, y = World3dToScreen2d(c.x, c.y, c.z + 0.5)
+                    if onScreen then
+                        SetTextScale(0.3, 0.3)
+                        SetTextFont(4)
+                        SetTextColour(200, 200, 200, 180)
+                        SetTextOutline()
+                        SetTextCentre(true)
+                        SetTextEntry('STRING')
+                        AddTextComponentString('~c~[SEARCHED]')
+                        DrawText(x, y)
+                    end
+                end
+                Wait(0)
+            else
+                Wait(500)
+            end
         end
     end)
 end

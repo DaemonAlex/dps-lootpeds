@@ -295,14 +295,20 @@ RegisterNetEvent('dps-lootpeds:server:loot', function(netId, pedModel)
     generateLoot(source, pedModel, netId)
 end)
 
+---Check if a player is authorized to toggle the system (ace-based)
+---@param source number
+---@return boolean
+local function isAuthorized(source)
+    if not Config.AdminOnly then return true end
+    return IsPlayerAceAllowed(source, 'group.admin') or IsPlayerAceAllowed(source, 'command')
+end
+
 ---Enable looting system
 RegisterNetEvent('dps-lootpeds:server:enable', function()
     local source = source
-
-    -- Permission check
-    if Config.AdminOnly then
-        local player = Bridge.GetPlayer(source)
-        -- Add your admin check here
+    if not isAuthorized(source) then
+        Bridge.Debug('Unauthorized enable attempt by:', source)
+        return
     end
 
     systemEnabled = true
@@ -313,11 +319,9 @@ end)
 ---Disable looting system
 RegisterNetEvent('dps-lootpeds:server:disable', function()
     local source = source
-
-    -- Permission check
-    if Config.AdminOnly then
-        local player = Bridge.GetPlayer(source)
-        -- Add your admin check here
+    if not isAuthorized(source) then
+        Bridge.Debug('Unauthorized disable attempt by:', source)
+        return
     end
 
     systemEnabled = false
@@ -365,7 +369,7 @@ AddEventHandler('onResourceStart', function(resourceName)
         TriggerClientEvent('dps-lootpeds:client:disable', -1)
     end
 
-    print('^2[dps-lootpeds]^7 v3.0.0 started')
+    print('^2[dps-lootpeds]^7 v' .. GetResourceMetadata(GetCurrentResourceName(), 'version', 0) .. ' started')
     print('^2[dps-lootpeds]^7 State Bags: ' .. (Config.UseStateBags and '^2ENABLED' or '^1DISABLED') .. '^7')
     print('^2[dps-lootpeds]^7 System: ' .. (systemEnabled and '^2ENABLED' or '^1DISABLED') .. '^7')
 end)
