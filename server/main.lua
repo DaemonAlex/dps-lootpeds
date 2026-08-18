@@ -174,8 +174,21 @@ function TriggerPoliceAlert(source, netId)
     lib.callback('dps-lootpeds:client:getCoords', source, function(coords)
         if not coords then return end
 
-        -- Try qs-dispatch
-        if Bridge.Resources.dispatch then
+        -- Prefer wasabi_mdt (the MDT/dispatch this server runs)
+        if GetResourceState('wasabi_mdt') == 'started' then
+            local ok, err = pcall(function()
+                exports['wasabi_mdt']:CreateDispatch({
+                    type = 'disturbance',
+                    title = '10-31 - Body Looting',
+                    description = 'Suspicious activity - someone is looting a dead body',
+                    code = '10-31',
+                    coords = { x = coords.x, y = coords.y, z = coords.z },
+                    priority = 1,
+                    senderName = 'Anonymous',
+                })
+            end)
+            if not ok and Config.Debug then print(('[dps-lootpeds] wasabi_mdt dispatch error: %s'):format(tostring(err))) end
+        elseif Bridge.Resources.dispatch then
             TriggerEvent('qs-dispatch:server:CreateDispatchCall', {
                 job = 'police',
                 callLocation = coords,
