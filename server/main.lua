@@ -175,19 +175,31 @@ function TriggerPoliceAlert(source, netId)
         if not coords then return end
 
         -- Prefer wasabi_mdt (the MDT/dispatch this server runs)
+        local function notifyPoliceDirect()
+            for _, playerId in ipairs(GetPlayers()) do
+                local src = tonumber(playerId)
+                if Bridge.HasJob(src, Config.PoliceIntegration.policeJobs) then
+                    Bridge.Notify(src, '10-31 Report', 'Suspicious activity reported - possible body looting', 'inform', 10000)
+                end
+            end
+        end
+
         if GetResourceState('wasabi_mdt') == 'started' then
-            local ok, err = pcall(function()
+            local ok = pcall(function()
                 exports['wasabi_mdt']:CreateDispatch({
                     type = 'disturbance',
                     title = '10-31 - Body Looting',
                     description = 'Suspicious activity - someone is looting a dead body',
                     code = '10-31',
+                    location = 'Reported area',
                     coords = { x = coords.x, y = coords.y, z = coords.z },
                     priority = 1,
+                    departments = Config.PoliceIntegration.policeJobs,  -- route to the configured police jobs
                     senderName = 'Anonymous',
                 })
             end)
-            if not ok and Config.Debug then print(('[dps-lootpeds] wasabi_mdt dispatch error: %s'):format(tostring(err))) end
+            -- if the MDT export errored, don't leave police with no alert
+            if not ok then notifyPoliceDirect() end
         elseif Bridge.Resources.dispatch then
             TriggerEvent('qs-dispatch:server:CreateDispatchCall', {
                 job = 'police',
