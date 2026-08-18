@@ -194,7 +194,6 @@ function TriggerPoliceAlert(source, netId)
                     location = 'Reported area',
                     coords = { x = coords.x, y = coords.y, z = coords.z },
                     priority = 1,
-                    departments = Config.PoliceIntegration.policeJobs,  -- route to the configured police jobs
                     senderName = 'Anonymous',
                 })
             end)
