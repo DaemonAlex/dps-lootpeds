@@ -8,7 +8,12 @@ local QBCore, ESX = nil, nil
 -- Initialize framework objects
 CreateThread(function()
     if Bridge.Framework == 'qb' or Bridge.Framework == 'qbx' then
-        QBCore = exports['qb-core']:GetCoreObject()
+        -- qbx compat may not expose GetCoreObject at cold boot; retry briefly instead of erroring
+        for _ = 1, 50 do
+            local ok, core = pcall(function() return exports['qb-core']:GetCoreObject() end)
+            if ok and core then QBCore = core break end
+            Wait(200)
+        end
     elseif Bridge.Framework == 'esx' then
         ESX = exports['es_extended']:getSharedObject()
     end

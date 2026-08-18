@@ -124,8 +124,15 @@ end
 -- TARGET SYSTEM
 -- ═══════════════════════════════════════════════════════
 
+local unloadTargetSystem   -- forward declaration
+local indicatorRunning = false
+
 local function loadTargetSystem()
     if not Config.UseTarget then return end
+
+    -- both onResourceStart and OnPlayerLoaded call this; drop any prior
+    -- registration so ox_target does not warn about replacing the option
+    unloadTargetSystem()
 
     if Config.UseAllPeds then
         -- Use global ped interaction (any dead NPC)
@@ -166,7 +173,7 @@ local function loadTargetSystem()
     Bridge.Debug('Target system loaded')
 end
 
-local function unloadTargetSystem()
+function unloadTargetSystem()
     if not Config.UseTarget then return end
 
     if Config.UseAllPeds then
@@ -189,6 +196,8 @@ local nearbyLootedBodies = {}
 
 local function drawLootedIndicator()
     if not Config.UseStateBags then return end
+    if indicatorRunning then return end   -- threads below never exit; spawn once
+    indicatorRunning = true
 
     -- Scanner: rebuild the nearby-looted list a few times a second, not per-frame.
     CreateThread(function()
