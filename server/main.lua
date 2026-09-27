@@ -402,3 +402,38 @@ AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
     print('^2[dps-lootpeds]^7 Resource stopped')
 end)
+
+
+-- ═══════════════════════════════════════════════════════
+-- WALLET (DPS 2026-09-27)
+-- ox_inventory calls this export for the 'wallet' item:
+--   'usingItem' before use (return false to cancel), 'usedItem' after the
+--   wallet has been consumed. Cash and extras come from Config.Wallet.
+-- ═══════════════════════════════════════════════════════
+
+exports('usewallet', function(event, item, inventory, slot, data)
+    if event ~= 'usedItem' then return end
+    local source = inventory and inventory.id
+    if type(source) ~= 'number' then return end
+    local w = Config.Wallet
+    if not w then return end
+
+    local cash
+    if w.fat and rollChance(w.fat.chance) then
+        cash = getRandomAmount(w.fat.min, w.fat.max)
+    else
+        cash = getRandomAmount(w.cash.min, w.cash.max)
+    end
+
+    if cash > 0 and Bridge.AddMoney(source, Config.Cash.Type, cash, 'wallet') then
+        Bridge.Notify(source, 'Wallet', ('$%d in cash'):format(cash), 'success')
+    end
+
+    for _, extra in ipairs(w.extras or {}) do
+        if rollChance(extra.chance) then
+            local amount = 1
+            if extra.amount then amount = getRandomAmount(extra.amount[1], extra.amount[2]) end
+            Bridge.AddItem(source, extra.item, amount)
+        end
+    end
+end)
