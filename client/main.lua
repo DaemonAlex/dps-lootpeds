@@ -30,7 +30,11 @@ end
 local function isBlacklisted(entity)
     if not Config.Restrictions.blacklistedPeds then return false end
 
-    local model = GetEntityModel(entity)
+    -- DPS 2026-09-27: ox_target calls this every frame while aiming; a ped that is being deleted still passes
+    -- DoesEntityExist but its archetype is gone and GetEntityModel faults in gta-streaming-five. Protected call,
+    -- and a ped we cannot identify is treated as blacklisted (not lootable).
+    local ok, model = pcall(GetEntityModel, entity)
+    if not ok or not model or model == 0 then return true end
     for _, blacklisted in ipairs(Config.Restrictions.blacklistedPeds) do
         if GetHashKey(blacklisted) == model then
             return true
