@@ -107,18 +107,28 @@ local function generateLoot(source, pedModel, netId)
     end
 
     -- ITEM LOOT
+    -- DPS 2026-09-27 (Damon: "cap it"): every entry still rolls on its own, but a body hands over at most
+    -- Config.MaxItemsPerBody of what rolled, picked at random, so wide tables do not mean stuffed pockets.
     if lootTable.loot then
+        local rolled = {}
         for _, lootEntry in ipairs(lootTable.loot) do
             if rollChance(lootEntry.chance) then
-                local amount = 1
-                if lootEntry.amount then
-                    amount = getRandomAmount(lootEntry.amount[1], lootEntry.amount[2])
-                end
+                rolled[#rolled + 1] = lootEntry
+            end
+        end
+        local cap = Config.MaxItemsPerBody or 5
+        while #rolled > cap do
+            table.remove(rolled, math.random(#rolled))
+        end
+        for _, lootEntry in ipairs(rolled) do
+            local amount = 1
+            if lootEntry.amount then
+                amount = getRandomAmount(lootEntry.amount[1], lootEntry.amount[2])
+            end
 
-                if Bridge.AddItem(source, lootEntry.item, amount) then
-                    Bridge.Notify(source, 'Found Item', 'Found ' .. lootEntry.item .. ' x' .. amount, 'success')
-                    lootGiven = true
-                end
+            if Bridge.AddItem(source, lootEntry.item, amount) then
+                Bridge.Notify(source, 'Found Item', 'Found ' .. lootEntry.item .. ' x' .. amount, 'success')
+                lootGiven = true
             end
         end
     end

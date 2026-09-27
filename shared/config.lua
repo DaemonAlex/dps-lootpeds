@@ -20,6 +20,7 @@ Config.Locale = 'en'
 Config.EnableOnStart = true
 Config.UseTarget = true                  -- Use ox_target for interaction
 Config.InteractionDistance = 2.5         -- Distance to interact with corpses
+Config.MaxItemsPerBody = 5               -- DPS 2026-09-27: most a body hands over, picked at random from what rolled
 
 -- Body Handling (IMPORTANT: State Bags prevent re-looting WITHOUT deletion)
 Config.DeletePedsWhenLooted = false      -- FALSE = Keep body, use State Bags
