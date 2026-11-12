@@ -60,6 +60,70 @@ end
 
 ---Generate and give loot to player
 ---@param source number
+---Light loot: is this entry small enough to come off a body? (Config.Light)
+---@param name string
+---@return boolean
+local function isSmallItem(name)
+    local light = Config.Light
+    local lower = name:lower()
+
+    if not light.allowWeapons and lower:sub(1, 7) == 'weapon_' then return false end
+    if not light.allowAmmo and lower:find('ammo', 1, true) then return false end
+
+    -- the weight comes from the inventory's own item list; an item it does not know is skipped
+    if GetResourceState('ox_inventory') == 'started' then
+        local ok, item = pcall(function() return exports.ox_inventory:Items(name) end)
+        if not ok or type(item) ~= 'table' then return false end
+        return (item.weight or 0) <= (light.maxWeight or 500)
+    end
+
+    return true
+end
+
+---Light loot: one or two small items from a table, picked by their own chances.
+---@param entries table[]
+---@return table[]
+local function pickLightLoot(entries)
+    local light = Config.Light
+    local pool, total = {}, 0
+
+    for _, entry in ipairs(entries) do
+        if (entry.chance or 0) > 0 and isSmallItem(entry.item) then
+            pool[#pool + 1] = entry
+            total = total + entry.chance
+        end
+    end
+
+    local want = math.min(#pool, math.random(light.minItems or 1, light.maxItems or 2))
+    local picked = {}
+
+    for _ = 1, want do
+        if #pool == 0 then break end
+
+        local roll, running = math.random() * total, 0
+
+        for i, entry in ipairs(pool) do
+            running = running + entry.chance
+
+            if roll <= running then
+                picked[#picked + 1] = entry
+
+                -- a table can list one item twice: drop every entry for it, so the two differ
+                for j = #pool, 1, -1 do
+                    if pool[j].item == entry.item then
+                        total = total - pool[j].chance
+                        table.remove(pool, j)
+                    end
+                end
+
+                break
+            end
+        end
+    end
+
+    return picked
+end
+
 ---@param pedModel string
 ---@param netId number
 local function generateLoot(source, pedModel, netId)
@@ -88,7 +152,9 @@ local function generateLoot(source, pedModel, netId)
     end
 
     -- CASH LOOT
-    if lootTable.cash and rollChance(lootTable.cash.chance) then
+    local light = Config.Light and Config.Light.enabled and Config.Light or nil
+
+    if lootTable.cash and not (light and light.cash == false) and rollChance(lootTable.cash.chance) then
         local cashAmount = getRandomAmount(lootTable.cash.min, lootTable.cash.max)
 
         if Config.Cash.Dirty then
@@ -108,12 +174,15 @@ local function generateLoot(source, pedModel, netId)
 
     -- ITEM LOOT
     if lootTable.loot then
-        for _, lootEntry in ipairs(lootTable.loot) do
-            if rollChance(lootEntry.chance) then
+        local entries = light and pickLightLoot(lootTable.loot) or lootTable.loot
+
+        for _, lootEntry in ipairs(entries) do
+            if light or rollChance(lootEntry.chance) then
                 local amount = 1
                 if lootEntry.amount then
                     amount = getRandomAmount(lootEntry.amount[1], lootEntry.amount[2])
                 end
+                if light then amount = math.min(amount, light.maxAmount or 1) end
 
                 if Bridge.AddItem(source, lootEntry.item, amount) then
                     Bridge.Notify(source, 'Found Item', 'Found ' .. lootEntry.item .. ' x' .. amount, 'success')
