@@ -6,6 +6,40 @@ A modern, State Bag synced ped looting system for FiveM with model-specific loot
 ![Framework](https://img.shields.io/badge/framework-QB%20%7C%20QBX%20%7C%20ESX-green)
 ![License](https://img.shields.io/badge/license-GPL--3.0-orange)
 
+## Status
+
+Not running on DelPerroSands. It was not in the server's resource list on 1 November 2026. The
+date it was taken off is not recorded. The code is complete (version 3.1.0). The server runs
+m-RobNpc for robbing NPCs. The server's `wallet` item still calls this script's `usewallet`
+export, so wallets cannot be opened while this script is off.
+
+## What it is for
+
+It lets a player search a dead NPC and take what was in their pockets. What you find depends on
+who the NPC was. A police officer carries different things from a builder or a tourist.
+
+## On its own, and with other scripts
+
+**On its own.** It needs `ox_lib`, `ox_target`, a framework (Qbox, QBCore or ESX) and an
+inventory. The player uses the eye on a body, kneels for three seconds and gets items and a
+little cash. The body stays where it is and shows "[SEARCHED]" to everyone, so it cannot be
+looted twice. The code has 18 kinds of NPC, each with its own loot list. The tables below are
+from version 3.0.0 and still say 8.
+
+**With ox_inventory.** Loot goes into the player's inventory. The `wallet` item is used through
+ox_inventory: the player opens it and finds cash and sometimes a card, a receipt or a scratch
+card. The script also has code for qs-inventory, qb-inventory and codem-inventory. DelPerroSands
+does not run those.
+
+**With a paid MDT (wasabi_mdt).** If police alerts are turned on, a looting sends a dispatch call
+to the MDT. If the MDT call fails, on-duty police get a plain notification. Police alerts are off
+in the config by default.
+
+**With qs-dispatch.** Used for the alert only when wasabi_mdt is not running.
+
+**With ps-evidence.** If evidence is turned on, looting leaves a fingerprint. It is off by
+default, and DelPerroSands does not run ps-evidence.
+
 ## What Makes This Different?
 
 | Feature | Old Scripts | DPS LootPeds |
@@ -203,3 +237,44 @@ Config.Evidence = {
 ## License
 
 GPL-3.0 License
+
+## Recent changes
+
+- **12 November 2026.** README: status, what it is for, how it works alone and with paid scripts, other DPS scripts.
+- **27 September 2026.** Pockets like life: 18 NPC categories, the wallet item, and six loot
+  items that were missing from the inventory fixed.
+- **18 August 2026.** Police alerts go to wasabi_mdt, with a direct notification as a fallback.
+- **12 August 2026.** Version 3.1.0: security and performance fixes.
+
+## Author
+
+Made by [DaemonAlex](https://github.com/DaemonAlex) for DelPerroSands.
+
+## Other DPS scripts
+
+All of these are made for DelPerroSands and run together on one Qbox server. Each one works on
+its own. The ones marked "pairs with" do more when both are running.
+
+| Script | What it does |
+|---|---|
+| [dps-inventory](https://github.com/DaemonAlex/dps-inventory) | The inventory: ox_inventory with equipment slots, backpacks, armour plates and a self status panel, in the DelPerroSands colours. |
+| [dps-medical](https://github.com/DaemonAlex/dps-medical) | Patient records, illness and diagnostic tests. A companion to wasabi_ambulance. Pairs with dps-inventory: symptoms and diagnoses show on the status panel. |
+| [dps-insurance](https://github.com/DaemonAlex/dps-insurance) | Ties m-Insurance into the MDT, impound, hospital and medical chart. Pairs with dps-medical. |
+| [dps-studio](https://github.com/DaemonAlex/dps-studio) | Build rooms, doors and portals in game from one panel (`/studio`), with owners and managers so staff do not have to support them. |
+| [dps-shops](https://github.com/DaemonAlex/dps-shops) | Shop clerks who greet and react to a robbery, then player-owned shops. |
+| [dps-fleet](https://github.com/DaemonAlex/dps-fleet) | Vehicle browser and workshop on one panel: extras, liveries and mods for emergency vehicles. |
+| [dps-parking](https://github.com/DaemonAlex/dps-parking) | Parking with valet, impound, violations and reserved spots. |
+| [dps-vehiclepersistence](https://github.com/DaemonAlex/dps-vehiclepersistence) | Vehicles stay where they were parked. Pairs with dps-parking. |
+| [dps-towjob](https://github.com/DaemonAlex/dps-towjob) | Queue-based tow job with jg-mechanic integration. |
+| [dps-services](https://github.com/DaemonAlex/dps-services) | Request a tow and follow it live on the lb-phone and lb-tablet. Pairs with dps-towjob. |
+| [dps-autoshops](https://github.com/DaemonAlex/dps-autoshops) | Self-service repair shops when no mechanic is on duty. |
+| [dps-cityworker](https://github.com/DaemonAlex/dps-cityworker) | City infrastructure job and career. |
+| [dps-ainpcs](https://github.com/DaemonAlex/dps-ainpcs) | NPCs you can talk to, with trust, quests and intel. |
+| [dps-badpeds](https://github.com/DaemonAlex/dps-badpeds) | Police interaction with NPCs: stops, arrests, intel and jail records. |
+| [dps-gangwars](https://github.com/DaemonAlex/dps-gangwars) | Ambient gang NPCs, territory population and war reinforcements. |
+| [dps-rotations](https://github.com/DaemonAlex/dps-rotations) | Moves dealers, harvests and other spots on a fixed schedule. |
+| [dps-trains](https://github.com/DaemonAlex/dps-trains) | The train system. Pairs with dps-trains-stock, dps-traintools and dps-transitapp. |
+| [dps-transitapp](https://github.com/DaemonAlex/dps-transitapp) | Live train arrival boards on the lb-phone. |
+| [dps-faceplant](https://github.com/DaemonAlex/dps-faceplant) | City help, reports and staff tools on the lb-phone and lb-tablet. |
+| [dps-chat](https://github.com/DaemonAlex/dps-chat) | A command box for voice-only servers. No chat feed. |
+| [dps-filmmode](https://github.com/DaemonAlex/dps-filmmode) | One key hides every HUD layer and gives a smooth free camera for recording. |
