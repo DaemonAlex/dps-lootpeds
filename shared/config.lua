@@ -475,6 +475,23 @@ Config.PedCategories = {
 -- CASH SETTINGS
 -- ═══════════════════════════════════════════════════════
 
+-- ═══════════════════════════════════════
+-- LIGHT LOOT (DPS 2026-11-12, Damon: "less loot, 1-2 small items for now")
+-- While enabled, a body gives one or two small things and nothing else. The loot tables
+-- below stay as they are, so turning this off brings the full pockets back.
+-- ═══════════════════════════════════════
+
+Config.Light = {
+    enabled = true,
+    minItems = 1,           -- every body gives at least this many (if it has anything small)
+    maxItems = 2,           -- and never more than this many
+    maxWeight = 500,        -- "small" = an item that weighs this much or less (grams)
+    allowWeapons = false,   -- no weapons from a body
+    allowAmmo = false,      -- no ammunition from a body
+    maxAmount = 1,          -- at most this many of one item
+    cash = false,           -- no loose cash from a body. A wallet still holds its cash.
+}
+
 Config.Cash = {
     Type = 'cash',      -- 'cash' or 'bank'
     Dirty = false,      -- Use dirty money instead (if your server has it)
@@ -488,7 +505,7 @@ Config.Cash = {
 Config.PoliceIntegration = {
     enabled = false,                     -- Enable police alerts
     alertOnLoot = true,                  -- Alert police when someone loots a body
-    policeJobs = { 'police', 'bcso', 'sasp', 'rpd', 'rcso' },
+    policeJobs = { 'police', 'bcso', 'sasp' }, -- DPS 2026-11-12: Roxwood departments removed
     minPoliceOnline = 2,                 -- Minimum police needed for alerts
     alertChance = 25,                    -- % chance to trigger alert
 }

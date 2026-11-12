@@ -8,10 +8,7 @@ A modern, State Bag synced ped looting system for FiveM with model-specific loot
 
 ## Status
 
-Not running on DelPerroSands. It was not in the server's resource list on 1 November 2026. The
-date it was taken off is not recorded. The code is complete (version 3.1.0). The server runs
-m-RobNpc for robbing NPCs. The server's `wallet` item still calls this script's `usewallet`
-export, so wallets cannot be opened while this script is off.
+Running on DelPerroSands since 12 November 2026, in light-loot mode.
 
 ## What it is for
 
@@ -240,11 +237,28 @@ GPL-3.0 License
 
 ## Recent changes
 
+- **12 November 2026. Light loot, and back on the server.** A new `Config.Light` block makes a body give one or two small items and nothing else: no weapons, no ammunition, no loose cash, and nothing over 500 g. A wallet still holds its cash. The full loot tables are untouched, so setting `Config.Light.enabled = false` brings the full pockets back. The script is running on DelPerroSands again, which also makes the `wallet` item open.
 - **12 November 2026.** README: status, what it is for, how it works alone and with paid scripts, other DPS scripts.
 - **27 September 2026.** Pockets like life: 18 NPC categories, the wallet item, and six loot
   items that were missing from the inventory fixed.
 - **18 August 2026.** Police alerts go to wasabi_mdt, with a direct notification as a fallback.
 - **12 August 2026.** Version 3.1.0: security and performance fixes.
+
+## Light loot
+
+`Config.Light` in `shared/config.lua`:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `enabled` | `true` | Turn light loot on. Off means the full loot tables. |
+| `minItems`, `maxItems` | `1`, `2` | How many items a body gives. |
+| `maxWeight` | `500` | The heaviest item, in grams, that counts as small. The weight comes from ox_inventory's item list. |
+| `allowWeapons`, `allowAmmo` | `false` | Whether a body can give weapons or ammunition. |
+| `maxAmount` | `1` | The most of one item. |
+| `cash` | `false` | Whether a body gives loose cash. |
+
+Items are picked by the same chances as the full tables, so a likely item stays likely. An item
+the inventory does not know is skipped.
 
 ## Author
 
