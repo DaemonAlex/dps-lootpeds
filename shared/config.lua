@@ -28,6 +28,14 @@ Config.BodyDespawnTime = 300000          -- 5 minutes before marking for cleanup
 
 -- Admin Settings
 Config.AdminOnly = false
+
+-- What the server checks before it gives anything for a search. The body must be a real dead NPC next to the player.
+Config.Proof = {
+    reach = 5.0,             -- metres between the player and the body
+    requireDead = true,      -- false = skip the health check (only if the server reads health wrongly for some peds)
+    deadHealth = 101,        -- a ped at or under this health counts as dead
+    cooldownSeconds = 3,     -- one search per player in this many seconds
+}
 Config.Commands = {
     toggle = 'lootpeds',                 -- /lootpeds on/off
     reload = 'reloadloot'                -- /reloadloot (admin: reload loot tables)

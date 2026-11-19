@@ -111,10 +111,8 @@ local function lootPed(entity)
     if success then
         -- Get ped network ID and model for server
         local netId = PedToNet(entity)
-        local modelHash = GetEntityModel(entity)
-
-        -- Send to server with model info
-        TriggerServerEvent('dps-lootpeds:server:loot', netId, tostring(modelHash))
+        -- The server works out what kind of ped it is by itself
+        TriggerServerEvent('dps-lootpeds:server:loot', netId)
     else
         Bridge.Notify('Cancelled', 'You stopped searching', 'inform')
     end

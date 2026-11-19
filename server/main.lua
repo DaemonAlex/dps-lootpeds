@@ -25,27 +25,33 @@ local function getRandomAmount(min, max)
     return math.random(min, max)
 end
 
----Determine ped category from model name
----@param modelName string
----@return string category name
-local function getPedCategory(modelName)
-    if not modelName then return 'default' end
-
-    modelName = string.lower(modelName)
-
+-- The server's own answer to "what kind of ped is this": model hash -> category, built once from the game's ped
+-- names (data/pedmodels.lua). The longest matching pattern wins, so the result never depends on table order.
+local categoryByHash = {}
+do
+    local flat = {}
     for categoryName, categoryData in pairs(Config.PedCategories) do
-        if categoryData.patterns then
-            for _, pattern in ipairs(categoryData.patterns) do
-                if string.find(modelName, pattern, 1, true) then
-                    Bridge.Debug('Ped', modelName, 'matched category:', categoryName)
-                    return categoryName
-                end
-            end
+        for _, pattern in ipairs(categoryData.patterns or {}) do
+            flat[#flat + 1] = { pattern = pattern, category = categoryName }
         end
     end
-
-    return 'default'
+    table.sort(flat, function(a, b)
+        if #a.pattern ~= #b.pattern then return #a.pattern > #b.pattern end
+        return a.pattern < b.pattern
+    end)
+    for _, name in ipairs(PedModelNames or {}) do
+        for _, f in ipairs(flat) do
+            if string.find(name, f.pattern, 1, true) then categoryByHash[joaat(name)] = f.category break end
+        end
+    end
 end
+
+local function categoryOfPed(ped)
+    return categoryByHash[GetEntityModel(ped)] or 'default'
+end
+
+local blacklistHash = {}
+for _, name in ipairs(Config.Restrictions.blacklistedPeds or {}) do blacklistHash[joaat(name)] = true end
 
 ---Get loot table for a category
 ---@param category string
@@ -124,14 +130,13 @@ local function pickLightLoot(entries)
     return picked
 end
 
----@param pedModel string
+---@param category string
 ---@param netId number
-local function generateLoot(source, pedModel, netId)
+local function generateLoot(source, category, netId)
     local player = Bridge.GetPlayer(source)
     if not player then return end
 
     local lootGiven = false
-    local category = getPedCategory(pedModel)
     local lootTable = getLootTable(category)
 
     Bridge.Debug('Generating loot for category:', category)
@@ -141,8 +146,8 @@ local function generateLoot(source, pedModel, netId)
         local ped = NetworkGetEntityFromNetworkId(netId)
         if DoesEntityExist(ped) then
             Entity(ped).state:set('isLooted', true, true)
-            Entity(ped).state:set('lootedBy', Bridge.GetPlayerIdentifier(source), true)
-            Entity(ped).state:set('lootedAt', os.time(), true)
+            Entity(ped).state:set('lootedBy', Bridge.GetPlayerIdentifier(source), false)   -- server only: who is not for other players
+            Entity(ped).state:set('lootedAt', os.time(), false)
         end
     end
 
@@ -335,27 +340,19 @@ lib.callback.register('dps-lootpeds:server:isPedLooted', function(source, netId)
 end)
 
 -- Check restrictions before looting
-lib.callback.register('dps-lootpeds:server:canLoot', function(source)
-    -- Check job restriction
-    if Config.Restrictions.jobRestricted then
-        if not Bridge.HasJob(source, Config.Restrictions.allowedJobs) then
-            return false, 'job_restricted'
-        end
+local function allowedToLoot(source)
+    if Config.Restrictions.jobRestricted and not Bridge.HasJob(source, Config.Restrictions.allowedJobs) then
+        return false, 'job_restricted'
     end
-
-    -- Check required item
-    if Config.Restrictions.requireItem then
-        if not Bridge.HasItem(source, Config.Restrictions.requiredItem) then
-            return false, 'need_item'
-        end
-
-        -- Consume item if configured
-        if Config.Restrictions.consumeItem then
-            Bridge.RemoveItem(source, Config.Restrictions.requiredItem, 1)
-        end
+    if Config.Restrictions.requireItem and not Bridge.HasItem(source, Config.Restrictions.requiredItem) then
+        return false, 'need_item'
     end
-
     return true, nil
+end
+
+-- Asked before the search starts, so the player is told why not. The loot event checks again: this is not the gate.
+lib.callback.register('dps-lootpeds:server:canLoot', function(source)
+    return allowedToLoot(source)
 end)
 
 -- ═══════════════════════════════════════════════════════
@@ -363,36 +360,46 @@ end)
 -- ═══════════════════════════════════════════════════════
 
 ---Handle loot request from client
-RegisterNetEvent('dps-lootpeds:server:loot', function(netId, pedModel)
+-- The client only says "I searched this body". Everything else is the server's own view: the body exists, is an
+-- NPC, is dead, is next to the player, was not searched before, and its loot table comes from its model.
+local lastLoot = {}   -- source -> GetGameTimer() of the last accepted search
+AddEventHandler('playerDropped', function() lastLoot[source] = nil end)
+
+RegisterNetEvent('dps-lootpeds:server:loot', function(netId)
     local source = source
     if not systemEnabled then return end
+    local P = Config.Proof
+    if type(netId) ~= 'number' or netId <= 0 then return end
 
-    -- Validate netId
-    if not netId or netId <= 0 then
-        Bridge.Debug('Invalid netId from source:', source)
+    local now = GetGameTimer()
+    if lastLoot[source] and now - lastLoot[source] < P.cooldownSeconds * 1000 then return end
+
+    local ped = NetworkGetEntityFromNetworkId(netId)
+    if not ped or ped == 0 or not DoesEntityExist(ped) then return end
+    if GetEntityType(ped) ~= 1 or IsPedAPlayer(ped) then return end
+    if blacklistHash[GetEntityModel(ped)] then return end
+    if P.requireDead and GetEntityHealth(ped) > P.deadHealth then return end
+    local me = GetPlayerPed(source)
+    if not me or me == 0 or #(GetEntityCoords(me) - GetEntityCoords(ped)) > P.reach then return end
+
+    if Entity(ped).state.isLooted then
+        Bridge.Notify(source, 'Already Looted', 'This body has already been searched', 'warning')
         return
     end
+    if not allowedToLoot(source) then return end
+    if Config.Restrictions.requireItem and Config.Restrictions.consumeItem
+        and not Bridge.RemoveItem(source, Config.Restrictions.requiredItem, 1) then return end
 
-    -- Check if already looted (State Bag)
-    if Config.UseStateBags then
-        local ped = NetworkGetEntityFromNetworkId(netId)
-        if DoesEntityExist(ped) then
-            local state = Entity(ped).state
-            if state.isLooted then
-                Bridge.Notify(source, 'Already Looted', 'This body has already been searched', 'warning')
-                return
-            end
-        end
-    end
-
-    generateLoot(source, pedModel, netId)
+    lastLoot[source] = now
+    Entity(ped).state:set('isLooted', true, true)   -- always marked, so one body is one search
+    generateLoot(source, categoryOfPed(ped), netId)
 end)
 
 ---Check if a player is authorized to toggle the system (ace-based)
 ---@param source number
 ---@return boolean
 local function isAuthorized(source)
-    if not Config.AdminOnly then return true end
+    -- switching looting on or off for the whole server is always staff only (Config.AdminOnly no longer opens it)
     return IsPlayerAceAllowed(source, 'group.admin') or IsPlayerAceAllowed(source, 'command')
 end
 
@@ -431,7 +438,7 @@ lib.addCommand(Config.Commands.toggle, {
     params = {
         { name = 'state', type = 'string', help = 'on or off' }
     },
-    restricted = Config.AdminOnly and 'group.admin' or false
+    restricted = 'group.admin'
 }, function(source, args)
     local state = args.state and string.lower(args.state)
 

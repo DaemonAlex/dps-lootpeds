@@ -237,6 +237,10 @@ GPL-3.0 License
 
 ## Recent changes
 
+- **19 November 2026 (3.1.1).** The server now checks every search itself: the body must be a real dead NPC next to
+  the player, one search per body, with a short cooldown. Before, the loot event gave items for any number sent to it.
+  Loot tables by ped type work again (the server reads the ped's model). Switching looting on or off is staff only.
+
 - **12 November 2026. Light loot, and back on the server.** A new `Config.Light` block makes a body give one or two small items and nothing else: no weapons, no ammunition, no loose cash, and nothing over 500 g. A wallet still holds its cash. The full loot tables are untouched, so setting `Config.Light.enabled = false` brings the full pockets back. The script is running on DelPerroSands again, which also makes the `wallet` item open.
 - **12 November 2026.** README: status, what it is for, how it works alone and with paid scripts, other DPS scripts.
 - **27 September 2026.** Pockets like life: 18 NPC categories, the wallet item, and six loot

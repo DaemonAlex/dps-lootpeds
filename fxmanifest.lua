@@ -19,7 +19,7 @@ lua54 'yes'
 name 'dps-lootpeds'
 author 'DPS Development (Original: MaDHouSe)'
 description 'State Bag synced ped looting with model-specific loot tables'
-version '3.1.0'
+version '3.1.1'
 
 ox_lib 'locale'
 
@@ -37,6 +37,7 @@ client_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'bridge/server.lua',
+    'data/pedmodels.lua',
     'server/main.lua',
 }
 
